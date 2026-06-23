@@ -34,7 +34,7 @@ MACRO_SERIES = {
     'VIXCLS': 'VIX'
 }
 
-def load_prices(tickers, start='2010-01-01', batch_size=50, sleep=2, retries=3):
+def load_prices(tickers=UNIVERSE, start='2010-01-01', batch_size=50, sleep=2, retries=3):
 	price_data = []
 	for i in range(0, len(tickers), batch_size):
 		batch = tickers[i:i+batch_size]
@@ -48,7 +48,7 @@ def load_prices(tickers, start='2010-01-01', batch_size=50, sleep=2, retries=3):
 				print(f"yf Download attempt {attempt + 1} failed: {e}")
 	return pd.concat(price_data, axis=1)
 
-def load_prices_cashed(tickers, start='2010-01-01', cache_path=BASE_DIR / 'data' / 'cache' / 'prices.parquet'):
+def load_prices_cached(tickers=UNIVERSE, start='2010-01-01', cache_path=BASE_DIR / 'data' / 'cache' / 'prices.parquet'):
 	if cache_path.exists():
 		cached = pd.read_parquet(cache_path)
 		last_date = cached.index[-1]
@@ -70,10 +70,13 @@ def load_prices_cashed(tickers, start='2010-01-01', cache_path=BASE_DIR / 'data'
 def load_macro(start='2010-01-01'):
 	load_dotenv()
 	fred = Fred(api_key=os.getenv('FRED_API_KEY'))
-	return {
+	macro_dict = {
 		name: fred.get_series(series_id, observation_start=start)
 		for series_id, name in MACRO_SERIES.items()
 	}
+	macro_df = pd.DataFrame(macro_dict)
+	macro_df.index.name = 'Date'
+	return macro_df
 
-print(load_prices_cashed(UNIVERSE))
+print(load_prices_cached())
 print(load_macro())
